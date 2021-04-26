@@ -1,15 +1,21 @@
 const { Model, DataTypes } = require('sequelize');
+const bcrypt = require('bcrypt');
 const sequelize = require('../config/connection');
 
-// Create out User model
-class User extends Model { };
+// create our User model
+class User extends Model {
+  // set up method to run on instance data (per user) to check password
+  checkPassword(loginPw) {
+    return bcrypt.compareSync(loginPw, this.password);
+  }
+}
 
-// define table columns and configuration
+// create fields/columns for User model
 User.init(
   {
-    id:{
+    id: {
       type: DataTypes.INTEGER,
-      allowNull:false,
+      allowNull: false,
       primaryKey: true,
       autoIncrement: true
     },
@@ -20,7 +26,10 @@ User.init(
     email: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true
+      unique: true,
+      validate: {
+        isEmail: true
+      }
     },
     password: {
       type: DataTypes.STRING,
@@ -31,18 +40,24 @@ User.init(
     }
   },
   {
-    // TABLE CONFIGURATION OPRIONS FO HERE (httpls://squlize.org/v5/manual/models=definition.html#configuration)
+    hooks: {
+      // set up beforeCreate lifecycle "hook" functionality
+      async beforeCreate(newUserData) {
+        newUserData.password = await bcrypt.hash(newUserData.password, 10);
+        return newUserData;
+      },
 
-    // pass in our imported seqeulize connection (the direction connection to our deta base) 
+      async beforeUpdate(updatedUserData) {
+        updatedUserData.password = await bcrypt.hash(updatedUserData.password, 10);
+        return updatedUserData;
+      }
+    },
     sequelize,
-    // don't automatically create createdAT/updatedAt timestamp field
     timestamps: false,
-    // don't pluralize name of database table
     freezeTableName: true,
-    // use underscores intead of camel-casing (i.e. `comment_text` and not `commentText`)
     underscored: true,
-    // make it so our model name stays lowercase in the database
     modelName: 'user'
-  });
+  }
+);
 
-  module.exports = User;
+module.exports = User;
