@@ -1,16 +1,18 @@
 const router = require('express').Router();
+const sequelize = require('../../config/connection');
 const { Post, User, Vote } = require('../../models');
-const { sequelize } = require('../../models/User');
-const { post } = require('./user-routes');
 
 // get all users
 router.get('/', (req, res) => {
-  console.log('=====================');
+  console.log('======================');
   Post.findAll({
-    attributes:
-      ['id', 'post_url', 'title', 'created_at',
-        [sequelize.literal('(SELECT COUNT(*) FROM vote WHERE post.id = vote.post_id)'), 'vote_count']
-      ],
+    attributes: [
+      'id',
+      'post_url',
+      'title',
+      'created_at',
+      [sequelize.literal('(SELECT COUNT(*) FROM vote WHERE post.id = vote.post_id)'), 'vote_count']
+    ],
     order: [['created_at', 'DESC']],
     include: [
       {
@@ -19,7 +21,7 @@ router.get('/', (req, res) => {
       }
     ]
   })
-    .then(dbPostdata => res.json(dbPostdata))
+    .then(dbPostData => res.json(dbPostData))
     .catch(err => {
       console.log(err);
       res.status(500).json(err);
@@ -29,65 +31,63 @@ router.get('/', (req, res) => {
 router.get('/:id', (req, res) => {
   Post.findOne({
     where: {
-      id: req.params.id,
+      id: req.params.id
     },
     attributes: [
-      'id', 'post_url', 'title', 'created_at',
+      'id',
+      'post_url',
+      'title',
+      'created_at',
       [sequelize.literal('(SELECT COUNT(*) FROM vote WHERE post.id = vote.post_id)'), 'vote_count']
     ],
     include: [
       {
-        model: Post,
-        attributes: ['id', 'title', 'post_url', 'created_at']
-      },
-      {
-        model: Post,
-        attributes: ['title'],
-        through: Vote,
-        as: 'voted_posts'
+        model: User,
+        attributes: ['username']
       }
     ]
   })
-    .then(dbPostdata => {
-      if (!dbPostdata) {
-        res.status(404).json({ message: "No Post found with this id" });
+    .then(dbPostData => {
+      if (!dbPostData) {
+        res.status(404).json({ message: 'No post found with this id' });
         return;
       }
-      res.json(dbPostdata);
+      res.json(dbPostData);
     })
     .catch(err => {
       console.log(err);
-      res.status(500).json(err)
+      res.status(500).json(err);
     });
 });
 
 router.post('/', (req, res) => {
+  // expects {title: 'Taskmaster goes public!', post_url: 'https://taskmaster.com/press', user_id: 1}
   Post.create({
     title: req.body.title,
     post_url: req.body.post_url,
-    iser_id: req.body.user_id
+    user_id: req.body.user_id
   })
-    .then(dbPostdata => res.json(dbPostdata))
+    .then(dbPostData => res.json(dbPostData))
     .catch(err => {
       console.log(err);
-      res.status(500).json(err)
+      res.status(500).json(err);
     });
 });
 
-// PUT /api/posts/upvote
 router.put('/upvote', (req, res) => {
+  // custom static method created in models/Post.js
   Post.upvote(req.body, { Vote })
-    .then(dbPostdata => res.json(dbPostdata))
+    .then(updatedPostData => res.json(updatedPostData))
     .catch(err => {
       console.log(err);
-      res.status(400).json(err)
+      res.status(400).json(err);
     });
 });
 
 router.put('/:id', (req, res) => {
   Post.update(
     {
-      title: req.body.title,
+      title: req.body.title
     },
     {
       where: {
@@ -95,12 +95,12 @@ router.put('/:id', (req, res) => {
       }
     }
   )
-    .then(dbPostdata => {
-      if (!dbPostdata) {
+    .then(dbPostData => {
+      if (!dbPostData) {
         res.status(404).json({ message: 'No post found with this id' });
         return;
       }
-      res.json(dbPostdata);
+      res.json(dbPostData);
     })
     .catch(err => {
       console.log(err);
@@ -114,12 +114,12 @@ router.delete('/:id', (req, res) => {
       id: req.params.id
     }
   })
-    .then(dbPostdata => {
-      if (!dbPostdata) {
+    .then(dbPostData => {
+      if (!dbPostData) {
         res.status(404).json({ message: 'No post found with this id' });
         return;
       }
-      res.json(dbPostdata);
+      res.json(dbPostData);
     })
     .catch(err => {
       console.log(err);
